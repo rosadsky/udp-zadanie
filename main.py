@@ -16,6 +16,7 @@ def print_menu():
 # Funkcia na vytvorenie inicializacnej hlavicky keď klient chce odoslať prvý paket
 '''
 DRUH SPRAVY:
+    3 - ukončenie spojenia
     5 - inicializacia bola úspešná 
     6 - fragmentacia nazvu suboru 
     2 - sprava bola dorucena SPRAVNE 
@@ -97,7 +98,11 @@ def inicializacia_servera(port):
             server_socket.sendto(message_back, (server_destination_adress))
             print("-- Prišla inicializačná hlavička: SUBOR | Počet fragmentov prenosu: " + str(pocet_fragmentov) )
 
-
+        if(decodovaie_druh_spravy(data) == 3):
+            print(" < --- KLIENT UKONČIL SPOJENIE ")
+            ukoncenie = str(input("Pre ukončenie spojenia stlačte y"))
+            server_socket.close()
+            return
 
         if(decodovaie_druh_spravy(data) == 6):
             print("------ Primam časti cesta + nazov ")
@@ -119,8 +124,7 @@ def inicializacia_servera(port):
 
 def inicializacia_clienta(adresa, port):
 
-    adresa = "127.0.0.1"
-    port = 1
+
     fragmenty_na_odoslanie = [ ]
     fragmenty_na_odoslanie_inicializacny = []
     cesta_obrazok_odoslanie = ""
@@ -128,8 +132,7 @@ def inicializacia_clienta(adresa, port):
 
     # Potrebné vstupy na začiatok klienta
 
-    #adresa = str(input("Zadanie IP adresy"))
-    #port = int(input("Zadanie portu"))
+
     velkost_fragmentu = int(input("Velkost fragmentu:"))
 
     #message = b"Islovajconavandrovkuastretlojozapidika "
@@ -166,7 +169,6 @@ def inicializacia_clienta(adresa, port):
         print("check fragmenty == pocet fragmentov | ERROR")
 
 
-
     # Vytvorenie inicializačnej hlavičky
 
     if (input_typ == "f"):
@@ -177,6 +179,7 @@ def inicializacia_clienta(adresa, port):
     packet = hlavicka
 
     # Vytvorenie socketu
+
     client_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 
     # Poslanie prvého inicializačného packetu na server
@@ -185,8 +188,7 @@ def inicializacia_clienta(adresa, port):
 
     data, client_destination_adress_port = client_socket.recvfrom(1500)
 
-
-    ###################### TO ROBIM INICIALIZACIU FILU ###########################
+    # Fragmentacia nazvu suboru
 
     if(input_typ == 'f'):
         if (len(cesta_obrazok_odoslanie) > velkost_fragmentu):
@@ -239,9 +241,6 @@ def inicializacia_clienta(adresa, port):
         client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_fragmentov,velkost_fragmentu)
     else:
         print("ERROR !!!!  - server nepotrvrdil inicializáciu ")
-
-
-
 
 
 def server_functionality(server_socket,port,pocet_fragmentov,crc,subor_prijma = False):
@@ -300,8 +299,6 @@ def client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_
         for x in range(pocet_zlych_paketov):
             array_zlych_paketov.append(int(input("Zadaj č. paketu")))
 
-
-
     poradie = 0
 
     while len(fragmenty_na_odoslanie) > 0:
@@ -332,7 +329,13 @@ def client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_
             fragmenty_na_odoslanie.append(fragment)
 
 
+    print("** VSETKY DATA BOLI ODOSLANÉ ")
+    print("Ukončiť spojenie ? ")
+    ukoncenie_spojenia = str(input("y/n ?"))
 
+    if(ukoncenie_spojenia == 'y'):
+        client_socket.sendto((vytvorenie_inicializacnej_hlavicky(3, 1)), (adresa, port))
+        client_socket.close()
 
 
 
@@ -341,20 +344,29 @@ def client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_
 if __name__ == '__main__':
 
 
-    print_menu()
-    menu_input = int(input())
+    zadat_ip = True
+    pokracovat = 'y'
 
+    while True:
+        print_menu()
+        menu_input = int(input())
+        if(menu_input == 1):
+            inicializacia_servera(1)
 
-    if(menu_input == 1):
-        inicializacia_servera(1)
+        if (menu_input == 2):
 
-    if (menu_input == 2):
-        while True:
-            inicializacia_clienta(1,1)
-            print("CHCETE ODOSLAŤ DALŠIU SPRAVU ? y/n ")
-            pokracovat = str(input())
-            if(pokracovat == 'n'):
-                break
+            if(pokracovat == 'y'):
+                adresa = str(input("Zadanie IP adresy"))
+                port = int(input("Zadanie portu"))
+                while True:
+                    inicializacia_clienta(adresa,port)
+                    print("CHCETE ODOSLAŤ DALŠIU SPRAVU ? y/n ")
+                    pokracovat = str(input())
+                    if(pokracovat == 'n'):
+                        break
 
+        if(menu_input == 3):
+            print("Ukončujem program")
+            break
 
 
