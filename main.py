@@ -35,6 +35,13 @@ def vytvorenie_hlavicky(druh_spravy,poradie_fragmentu,crc):
     return hlavicka
 
 
+def vypocet_fragmentu(message,velkost_fragmentu):
+    if (len(message) % velkost_fragmentu == 0):
+        pocet_fragmentov = int(len(message) / velkost_fragmentu)
+    else:
+        pocet_fragmentov = int(len(message) / velkost_fragmentu) + 1
+
+    return pocet_fragmentov
 
 def decodovanie_hlavicky_sprava(data):
     druh_spravy = int.from_bytes(data[0:1], "big")
@@ -64,16 +71,41 @@ def inicializacia_servera(port):
     # nastavenie portu
     server_socket.bind(("", int(port)))
 
-
-
     while True:
         data, server_destination_adress = server_socket.recvfrom(1500)
         if (decodovaie_druh_spravy(data)==0):
-            message_back = vytvorenie_inicializacnej_hlavicky(2) # SPRAVA OK
+            message_back = vytvorenie_inicializacnej_hlavicky(5) # SPRAVA OK
             pocet_fragmentov = int.from_bytes(data[1:5],"big")
             server_socket.sendto(message_back, (server_destination_adress))
+            print("PRIDE SPRAVA  " + str(pocet_fragmentov))
             server_functionality(server_socket,port,pocet_fragmentov,0,False)
-            print("PRIDE SPRAVA: ")
+
+
+
+        if(decodovaie_druh_spravy(data)==1):
+            message_back = vytvorenie_inicializacnej_hlavicky(2)
+            pocet_fragmentov = int.from_bytes(data[1:5], "big")
+            server_socket.sendto(message_back, (server_destination_adress))
+            print("PRIDE SUBOR POZOR " + str(pocet_fragmentov) )
+
+        if(decodovaie_druh_spravy(data) == 6):
+            print("PRIJMAM ČASTI SUBORU")
+
+            druh_spravy, poradie_paketu, crc, data = decodovanie_hlavicky_sprava(data)
+            print(druh_spravy)
+            print(poradie_paketu)
+            print("VSETKY PAKETY: " + str(crc))
+            print(data)
+
+            if(crc == poradie_paketu):
+
+                message_back = vytvorenie_inicializacnej_hlavicky(5)
+                server_socket.sendto(message_back, (server_destination_adress))
+                server_functionality(server_socket,port,pocet_fragmentov,crc,True)
+            else:
+                message_back = vytvorenie_inicializacnej_hlavicky(2)
+                server_socket.sendto(message_back, (server_destination_adress))
+
 
 
 
@@ -108,12 +140,8 @@ def inicializacia_clienta(adresa, port):
         message = str(input("Zadaj spravu ktoru chces poslat"))
         message = message.encode()
 
-    # Výpočet  počtu fragmentov
 
-    if (len(message) % velkost_fragmentu == 0):
-        pocet_fragmentov = int(len(message) / velkost_fragmentu)
-    else:
-        pocet_fragmentov = int(len(message) / velkost_fragmentu) + 1
+    pocet_fragmentov = vypocet_fragmentu(message,velkost_fragmentu)
 
     # Rozdelenie správy do jednotlivých fragmentov
 
@@ -155,15 +183,12 @@ def inicializacia_clienta(adresa, port):
 
 
     ###################### TO ROBIM INICIALIZACIU FILU ###########################
-    ''' 
+
     if(input_typ == 'f'):
         if (len(cesta_obrazok_odoslanie) > velkost_fragmentu):
             print("INICIALIZAČNU HLAVIČKU TREBA FRAGMENTOVA5")
 
-            if (len(cesta_obrazok_odoslanie) % velkost_fragmentu == 0):
-                pocet_fragmentov_typsuboru = int(len(cesta_obrazok_odoslanie) / velkost_fragmentu)
-            else:
-                pocet_fragmentov_typsuboru = int(len(cesta_obrazok_odoslanie) / velkost_fragmentu) + 1
+            pocet_fragmentov_typsuboru = vypocet_fragmentu(cesta_obrazok_odoslanie,velkost_fragmentu)
 
             # Rozdelenie správy do jednotlivých fragmentov
 
@@ -176,8 +201,6 @@ def inicializacia_clienta(adresa, port):
             print("FRAGMENTY NA ODOSLANIE INICIALIZACNA :")
             print(fragmenty_na_odoslanie_inicializacny)
 
-            client_socket.sendto(vytvorenie_inicializacnej_hlavicky(1,pocet_fragmentov_typsuboru), (adresa, port))
-            data, client_destination_adress_port = client_socket.recvfrom(1500)
             poradie_fragmentu_server = 0
             if(int.from_bytes(data[0:1],"big") == 2):
                 while len(fragmenty_na_odoslanie_inicializacny) > 0:
@@ -185,7 +208,7 @@ def inicializacia_clienta(adresa, port):
                     print("ODOSIELAM")
                     fragment_subor = fragmenty_na_odoslanie_inicializacny.pop()
 
-                    client_socket.sendto(vytvorenie_hlavicky(1,poradie_fragmentu_server,1) + fragment_subor.encode(), (adresa, port))
+                    client_socket.sendto(vytvorenie_hlavicky(6,poradie_fragmentu_server,pocet_fragmentov_typsuboru) + fragment_subor.encode(), (adresa, port))
 
                     data, client_destination_adress_port = client_socket.recvfrom(1500)
 
@@ -196,16 +219,10 @@ def inicializacia_clienta(adresa, port):
                         print("NAZOV SUBORU INICIALIZOVANY")
                         break
 
+    #########   END  tej dlhej somariny
 
-        ## Po všetkej inicializacií pošlem počet fragmentov v súbore.
-
-        client_socket.sendto(packet, (adresa, port))
-
-        data, client_destination_adress_port = client_socket.recvfrom(1500)
-    '''
-
-    if(int.from_bytes(data[0:1],"big") == 2):
-        print("* PRIŠLO POTVRDENIE OD SERVERA - inicializácia správa ! druh spravy [ 2 ] ")
+    if(int.from_bytes(data[0:1],"big") == 5):
+        print("* PRIŠLO POTVRDENIE OD SERVERA - inicializácia správa ! druh spravy [ 5 = INICIALIZACIA USPESNA ] ")
         client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_fragmentov,velkost_fragmentu)
     else:
         print("!!! ERROR ")
