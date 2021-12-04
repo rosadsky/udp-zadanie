@@ -55,6 +55,14 @@ def decodovanie_hlavicky_sprava(data):
 
     return druh_spravy,poradie_paketu,crc,data
 
+def decodovanie_hlavicky_subor_inicializacna(data):
+    druh_spravy = int.from_bytes(data[0:1], "big")
+    poradie_paketu = int.from_bytes(data[1:5], "big")
+    pocet_fragmentov = int.from_bytes(data[5:9], "big")
+    data = data[9::]
+
+    return druh_spravy,poradie_paketu,pocet_fragmentov,data
+
 
 def decodovaie_druh_spravy(data):
     druh_spravy = int.from_bytes(data[0:1], "big")
@@ -64,13 +72,13 @@ def decodovaie_druh_spravy(data):
 
 #tu za prijme inicializačný packet
 def inicializacia_servera(port):
-    subor_prijma = False
-    #vytvorenie socketu
     nazov_suboru = ""
+
     server_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
     print("Priebieha štart servera...")
     # nastavenie portu
     server_socket.bind(("", int(port)))
+    print("SERVER POČÚVA NA PORTE " + str(port))
 
     while True:
         data, server_destination_adress = server_socket.recvfrom(1500)
@@ -78,7 +86,7 @@ def inicializacia_servera(port):
             message_back = vytvorenie_inicializacnej_hlavicky(5) # SPRAVA OK
             pocet_fragmentov = int.from_bytes(data[1:5],"big")
             server_socket.sendto(message_back, (server_destination_adress))
-            print("PRIDE SPRAVA  " + str(pocet_fragmentov))
+            print("-- Prišla inicializačná hlavička: SPRAVA | Počet fragmentov prenosu: " + str(pocet_fragmentov))
             server_functionality(server_socket,port,pocet_fragmentov,0,False)
 
 
@@ -87,32 +95,25 @@ def inicializacia_servera(port):
             message_back = odpoved_servera(2)
             pocet_fragmentov = int.from_bytes(data[1:5], "big")
             server_socket.sendto(message_back, (server_destination_adress))
-            print("PRIDE SUBOR POZOR " + str(pocet_fragmentov) )
+            print("-- Prišla inicializačná hlavička: SUBOR | Počet fragmentov prenosu: " + str(pocet_fragmentov) )
 
 
 
         if(decodovaie_druh_spravy(data) == 6):
-            print("PRIJMAM ČASTI SUBORU")
+            print("------ Primam časti cesta + nazov ")
+            druh_spravy, poradie_paketu, pocet_fragmentov_inicializacia, data = decodovanie_hlavicky_subor_inicializacna(data)
 
-            druh_spravy, poradie_paketu, crc, data = decodovanie_hlavicky_sprava(data)
-            print(druh_spravy)
-            print(poradie_paketu)
-            print("VSETKY PAKETY: " + str(crc))
-            print(data)
+            print("------ DRUH: " + str(druh_spravy) + " PORADIE: " + str(poradie_paketu) +" VŠETKY: " + str(pocet_fragmentov))
+            print("------ DATA: " + str(data))
 
-            if(crc == poradie_paketu):
+            if(pocet_fragmentov_inicializacia == poradie_paketu):
 
                 message_back = vytvorenie_inicializacnej_hlavicky(5)
                 server_socket.sendto(message_back, (server_destination_adress))
-                server_functionality(server_socket,port,pocet_fragmentov,crc,True)
+                server_functionality(server_socket,port,pocet_fragmentov,0,True)
             else:
                 message_back = vytvorenie_inicializacnej_hlavicky(2)
                 server_socket.sendto(message_back, (server_destination_adress))
-
-
-
-
-
 
 
 
