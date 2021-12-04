@@ -165,7 +165,7 @@ def inicializacia_clienta(adresa, port):
     else:
         print("check fragmenty == pocet fragmentov | ERROR")
 
-    print("------ INICIALIZÁCIA HODNOT SKONČILA -----------")
+
 
     # Vytvorenie inicializačnej hlavičky
 
@@ -190,7 +190,7 @@ def inicializacia_clienta(adresa, port):
 
     if(input_typ == 'f'):
         if (len(cesta_obrazok_odoslanie) > velkost_fragmentu):
-            print("INICIALIZAČNU HLAVIČKU TREBA FRAGMENTOVA5")
+            print("INICIALIZAČNU HLAVIČKU TREBA FRAGMENTOVAŤ")
 
             pocet_fragmentov_typsuboru = vypocet_fragmentu(cesta_obrazok_odoslanie,velkost_fragmentu)
 
@@ -202,25 +202,28 @@ def inicializacia_clienta(adresa, port):
 
             fragmenty_na_odoslanie_inicializacny = fragmenty_na_odoslanie_inicializacny[::-1]
 
-            print("FRAGMENTY NA ODOSLANIE INICIALIZACNA :")
+            print("FRAGMENTY NA ODOSLANIE V INICIALIZACNEJ SPRAVE:")
+
             print(fragmenty_na_odoslanie_inicializacny)
 
             poradie_fragmentu_server = 0
-            if(int.from_bytes(data[0:1],"big") == 2):
+            if(int.from_bytes(data[0:1],"big") == 2): #refaktor
                 while len(fragmenty_na_odoslanie_inicializacny) > 0:
                     poradie_fragmentu_server += 1
-                    print("ODOSIELAM")
                     fragment_subor = fragmenty_na_odoslanie_inicializacny.pop()
 
-                    client_socket.sendto(vytvorenie_hlavicky(6,poradie_fragmentu_server,pocet_fragmentov_typsuboru) + fragment_subor.encode(), (adresa, port))
+                    print(" --> ODOSIELAM | typ spravy :" + str(6) +
+                          " poradie_fragmentu: " + str(poradie_fragmentu_server) +
+                          " pocet_fragmentov: " + str(pocet_fragmentov))
 
+                    client_socket.sendto(vytvorenie_hlavicky(6,poradie_fragmentu_server,pocet_fragmentov_typsuboru) + fragment_subor.encode(), (adresa, port))
                     data, client_destination_adress_port = client_socket.recvfrom(1500)
 
-                    print("**** PRIŠLO  SPRAVA OK ")
-                    print(int.from_bytes(data[0:1],"big"))
+                    print("<--- POTVRDENIE : " + str(int.from_bytes(data[0:1],"big")))
+
 
                     if(int.from_bytes(data[0:1],"big") == 5):
-                        print("NAZOV SUBORU INICIALIZOVANY")
+                        print("NAZOV SUBORU USPEŠNE INICIALIZOVANY")
                         break
         else:
             print("HLAVIČKA BEZ FRAGMENTACIE")
@@ -229,12 +232,13 @@ def inicializacia_clienta(adresa, port):
             print("**** PRIŠLO  SPRAVA OK ")
             print(int.from_bytes(data[0:1], "big"))
 
+    print("------ INICIALIZÁCIA HODNOT SKONČILA -----------")
 
     if(int.from_bytes(data[0:1],"big") == 5):
-        print("* PRIŠLO POTVRDENIE OD SERVERA - inicializácia správa ! druh spravy [ 5 = INICIALIZACIA USPESNA ] ")
+        print("SERVER POTVRDIL INICIALIZACIU - inicializácia správa ! druh spravy [ 5 = INICIALIZACIA USPESNA ] ")
         client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_fragmentov,velkost_fragmentu)
     else:
-        print("!!! ERROR ")
+        print("ERROR !!!!  - server nepotrvrdil inicializáciu ")
 
 
 
@@ -242,7 +246,9 @@ def inicializacia_clienta(adresa, port):
 
 def server_functionality(server_socket,port,pocet_fragmentov,crc,subor_prijma = False):
 
-    print("*** SERVER IDE PRIJMAT DATA ***")
+    print("*******************************************")
+    print("********* SERVER IDE PRIJMAT DATA *********")
+    print("*******************************************")
 
     prijata_sprava = b""
 
@@ -311,7 +317,7 @@ def client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_
             array_zlych_paketov.pop(poradie_zlych)
 
 
-        print("Odosielam paket  č. " + str(poradie) + " velkost fragmentu " + str(velkost_fragmentu) + " CRC " + str(crc))
+        print(" --> ODOSIELAM paket  č. " + str(poradie) + " velkost fragmentu " + str(velkost_fragmentu) + " CRC " + str(crc))
         client_socket.sendto((vytvorenie_hlavicky(2,poradie,crc) + fragment),(adresa,port))
 
         data, server_destination_adress = client_socket.recvfrom(1500)
@@ -319,15 +325,12 @@ def client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_
         druh_spravy, poradie_paketu, crc, data_fragmentu = decodovanie_hlavicky_sprava(data)
 
         if(druh_spravy == 2):
-            print("** Server potvrdil správu že prišla v poriadku ")
+            print(" <--- PORVRDENIE OK : "+ str(druh_spravy))
         else:
             poradie -= 1
-            print(" ERROR !! Sprava prišla zlá pošli fragmant spať do pola")
+            print(" <--- ERROR !! Sprava prišla zlá pošli fragmant spať do pola")
             fragmenty_na_odoslanie.append(fragment)
 
-
-        print("PRIJATA SPRAVA")
-        print(int.from_bytes(data[0:1],"big"))
 
 
 
