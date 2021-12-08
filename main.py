@@ -350,8 +350,7 @@ def server_functionality(server_socket,port,pocet_fragmentov,crc,subor_prijma = 
 
 
     if(subor_prijma):
-        print("---------------------------------------")
-
+        print("--------------- SUBOR PRIJATY ------------------")
         print("NAZOV SUBORU :" + str(nazov_suboru))
         cesta_k_suboru = str(input("Zadaj cestu kam sa má subor uložiť"))
         final_cesta = str(cesta_k_suboru + nazov_suboru)
