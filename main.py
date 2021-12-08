@@ -1,6 +1,5 @@
 
 import socket # for socket
-import sys
 import zlib # crc 32
 import os
 
@@ -196,13 +195,13 @@ def inicializacia_clienta(adresa, port):
 
     fragmenty_na_odoslanie = fragmenty_na_odoslanie[::-1]
 
-    print("FRAGMENTY NA ODOSLANIE:")
-    print(fragmenty_na_odoslanie)
+    # print("FRAGMENTY NA ODOSLANIE:")
+    # print(fragmenty_na_odoslanie)
 
     # Len overenie
     if(len(fragmenty_na_odoslanie) == (pocet_fragmentov)):
         print("check fragmenty == pocet fragmentov | OK")
-        print("POCET PAKETOV NA OSODLANIE " + str(len(fragmenty_na_odoslanie)))
+        print("POCET PAKETOV NA ODOSLANIE " + str(len(fragmenty_na_odoslanie)))
     else:
         print("check fragmenty == pocet fragmentov | ERROR")
 
@@ -308,7 +307,8 @@ def server_functionality(server_socket,port,pocet_fragmentov,crc,subor_prijma = 
         print("******************************\nTYP SPRAVY: " + str(druh_spravy)+
               " PORADIE: " + str(poradie_paketu) +
               " CRC: " + str(crc) +
-              " VELKOST PRIJATYCH DAT: " + str(len(data)) )
+              " VELKOST PAKETU: " + str(len(data)) +
+              " VELKOST DAT: " + str(len(data_fragmentu)))
         #print(data_fragmentu.decode())
 
 
@@ -366,11 +366,10 @@ def server_functionality(server_socket,port,pocet_fragmentov,crc,subor_prijma = 
           str(uspesne_prijata + inicializacne_pakety) +
           " NEUSPESNE: " + str(neuspesne_prijata) +
           " VSETKY: " + str(uspesne_prijata + neuspesne_prijata +inicializacne_pakety))
-    print("Z TOHO POCET INICIALIZACNYCH PAKETOV " + str(inicializacne_pakety))
+    print("Z TOHO POCET INICIALIZACNYCH PAKETOV PRIJATYCH" + str(inicializacne_pakety))
     print("SERVER ODOSLAL: " + str(pocet_odoslany_paketov_server))
     print("UPLNE VŠETKY PRENESENE PAKETY: " + str(uspesne_prijata + neuspesne_prijata +inicializacne_pakety +pocet_odoslany_paketov_server ) )
-    print("-------------------------------------------")
-    print("VEĽKOST PRIJATEHO SUBORU: " + str(len(prijata_sprava)))
+    print("VEĽKOST PRIJATEJ SPRAVY: " + str(len(prijata_sprava)) + " B")
     print("//////////////////// KONIEC ANALYZY /////////////////////")
 
 def client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_fragmentov,velkost_fragmentu):
@@ -384,7 +383,7 @@ def client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_
 
     if (simulacia_chyba == 'y'):
         for x in range(pocet_zlych_paketov):
-            array_zlych_paketov.append(int(input("Zadaj č. paketu")))
+            array_zlych_paketov.append(int(input("Zadaj č. paketu MAX " + str(len(fragmenty_na_odoslanie)) )))
 
     poradie = 0
 
