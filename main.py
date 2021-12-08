@@ -7,6 +7,7 @@ import os
 prijate_data_server = 0
 server_prijate_ramce = 0
 client_odoslane_ramce = 0
+client_prijate_ramce = 0
 
 def print_menu():
     print("-----------------------------------------")
@@ -154,8 +155,8 @@ def inicializacia_servera(port,ip_adresa_servera):
                 server_socket.sendto(message_back, (server_destination_adress))
 
 def inicializacia_clienta(adresa, port):
-
-
+    global client_prijate_ramce
+    global client_odoslane_ramce
     fragmenty_na_odoslanie = [ ]
     fragmenty_na_odoslanie_inicializacny = []
     cesta_obrazok_odoslanie = ""
@@ -223,11 +224,11 @@ def inicializacia_clienta(adresa, port):
     client_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 
     # Poslanie prvého inicializačného packetu na server
-
+    client_odoslane_ramce += 1
     client_socket.sendto(packet, (adresa, port))
 
     data, client_destination_adress_port = client_socket.recvfrom(1500)
-
+    client_prijate_ramce += 1
     # Fragmentacia nazvu suboru
 
     if(input_typ == 'f'):
@@ -258,10 +259,10 @@ def inicializacia_clienta(adresa, port):
                     print(" --> ODOSIELAM | typ spravy :" + str(6) +
                           " poradie_fragmentu: " + str(poradie_fragmentu_server) +
                           " pocet_fragmentov: " + str(crc_typ))
-
+                    client_odoslane_ramce += 1
                     client_socket.sendto(vytvorenie_hlavicky(6,poradie_fragmentu_server,crc_typ) + fragment_subor, (adresa, port))
                     data, client_destination_adress_port = client_socket.recvfrom(1500)
-
+                    client_prijate_ramce += 1
                     print("<--- POTVRDENIE : " + str(int.from_bytes(data[0:1],"big")) +" VELKOST:" + str(len(data)))
 
 
@@ -270,8 +271,10 @@ def inicializacia_clienta(adresa, port):
                         break
         else:
             print("HLAVIČKA BEZ FRAGMENTACIE")
+            client_odoslane_ramce += 1
             client_socket.sendto(vytvorenie_hlavicky(6, 1, 1) + cesta_obrazok_odoslanie.encode(),(adresa, port))
             data, client_destination_adress_port = client_socket.recvfrom(1500)
+            client_prijate_ramce += 1
             print("**** PRIŠLO  SPRAVA OK ")
             print(int.from_bytes(data[0:1], "big"))
 
@@ -374,6 +377,8 @@ def server_functionality(server_socket,port,pocet_fragmentov,crc,subor_prijma = 
 
 def client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_fragmentov,velkost_fragmentu):
 
+    global client_odoslane_ramce
+    global client_prijate_ramce
     print("*** KLIENT IDE ODOSIELAT DATA ***")
    #print("DATA NA ODOSLANIE: " + str(fragmenty_na_odoslanie))
 
@@ -404,10 +409,11 @@ def client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_
               " velkost fragmentu " + str(velkost_fragmentu) +
               " VELKOST PAKETU "+ str(len((vytvorenie_hlavicky(2,poradie,crc) + fragment))) +
               " CRC " + str(crc))
+        client_odoslane_ramce += 1
         client_socket.sendto((vytvorenie_hlavicky(2,poradie,crc) + fragment),(adresa,port))
 
         data, server_destination_adress = client_socket.recvfrom(1500)
-
+        client_prijate_ramce += 1
         druh_spravy, poradie_paketu, crc, data_fragmentu = decodovanie_hlavicky_sprava(data)
 
         if(druh_spravy == 2):
@@ -416,6 +422,7 @@ def client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_
             poradie -= 1
             print(" <--- ERROR !! Sprava prišla zlá pošli fragmant spať do pola" +" VELKOST:" + str(len(data)))
             if (len(fragmenty_na_odoslanie)==0):
+                client_odoslane_ramce +=1
                 client_socket.sendto((vytvorenie_hlavicky(2, poradie, crc) + fragment), (adresa, port))
                 druh_spravy, poradie_paketu, crc, data_fragmentu = decodovanie_hlavicky_sprava(data)
                 if (druh_spravy == 2):
@@ -431,7 +438,10 @@ def client_functionality(client_socket,adresa,port,fragmenty_na_odoslanie,pocet_
     ukoncenie_spojenia = str(input("y/n ?"))
 
     if(ukoncenie_spojenia == 'y'):
+        client_odoslane_ramce += 1
         client_socket.sendto((vytvorenie_inicializacnej_hlavicky(3, 1)), (adresa, port))
+        print("KLIENT ODOSLAL: " + str(client_odoslane_ramce) + " PAKETOV")
+        print("POCET PRIJATÝCH SPRAV OD SERVERA " + str(client_prijate_ramce))
         client_socket.close()
 
 
